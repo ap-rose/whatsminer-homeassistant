@@ -1,5 +1,5 @@
 {
-  "name": "Whatsminer API",
-  "country": "DE",
+  "name": "Home Assistant Integration: WhatsMiner API",
+  "url": "https://github.com/ap-rose/whatsminer-homeassistant",
   "render_readme": true
 }

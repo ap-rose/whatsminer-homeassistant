@@ -3,14 +3,16 @@
   "name": "Whatsminer API",
   "dependencies": [],
   "codeowners": [
-    "@incaseoftrouble"
+    "@incaseoftrouble",
+    "@danyasworld",
+    "@ap-rose"
   ],
   "requirements": [
     "passlib",
     "pycryptodome"
   ],
   "iot_class": "local_polling",
-  "documentation": "https://github.com/incaseoftrouble/whatsminer-homeassistant",
-  "version": "0.1.0",
+  "documentation": "https://github.com/ap-rose/whatsminer-homeassistant",
+  "version": "0.1.1",
   "config_flow": true
 }
