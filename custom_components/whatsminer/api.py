@@ -518,7 +518,21 @@ class WhatsminerApi20(WhatsminerApi):
             )
         except KeyError as error:
             raise InvalidResponse() from error
+            
+    async def set_low_power(self) -> None:
+        await self.coordinator.api.communicate(
+            "set_low_power", encrypted=True, expect_response=True
+        )
 
+    async def set_normal_power(self) -> None:
+        await self.coordinator.api.communicate(
+            "set_normal_power", encrypted=True, expect_response=True
+        )
+
+    async def set_high_power(self) -> None:
+        await self.coordinator.api.communicate(
+            "set_high_power", encrypted=True, expect_response=True
+        )
 
 # ================================ misc helpers ================================
 def crypt(word, salt):
