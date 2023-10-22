@@ -39,7 +39,7 @@ SENSOR_TYPES: Tuple[WhatsminerSensorEntityDescription, ...] = (
     WhatsminerSensorEntityDescription(
         key="hash_rate_average",
         name="Hash Rate (average)",
-        native_unit_of_measurement=FREQUENCY_MEGAHERTZ,
+        native_unit_of_measurement="GH/s",
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.FREQUENCY,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -48,7 +48,7 @@ SENSOR_TYPES: Tuple[WhatsminerSensorEntityDescription, ...] = (
     WhatsminerSensorEntityDescription(
         key="hash_rate_5_m",
         name="Hash Rate (5 min)",
-        native_unit_of_measurement=FREQUENCY_MEGAHERTZ,
+        native_unit_of_measurement="GH/s",
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.FREQUENCY,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -57,7 +57,7 @@ SENSOR_TYPES: Tuple[WhatsminerSensorEntityDescription, ...] = (
     WhatsminerSensorEntityDescription(
         key="hash_rate_1_m",
         name="Hash Rate (1 min)",
-        native_unit_of_measurement=FREQUENCY_MEGAHERTZ,
+        native_unit_of_measurement="GH/s",
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.FREQUENCY,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -66,7 +66,7 @@ SENSOR_TYPES: Tuple[WhatsminerSensorEntityDescription, ...] = (
     WhatsminerSensorEntityDescription(
         key="hash_rate_15_m",
         name="Hash Rate (15 min)",
-        native_unit_of_measurement=FREQUENCY_MEGAHERTZ,
+        native_unit_of_measurement="GH/s",
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.FREQUENCY,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -75,7 +75,7 @@ SENSOR_TYPES: Tuple[WhatsminerSensorEntityDescription, ...] = (
     WhatsminerSensorEntityDescription(
         key="hash_rate_target",
         name="Target Hash Rate",
-        native_unit_of_measurement=FREQUENCY_MEGAHERTZ,
+        native_unit_of_measurement="GH/s",
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.FREQUENCY,
         entity_category=EntityCategory.CONFIG,
@@ -146,8 +146,8 @@ SENSOR_TYPES: Tuple[WhatsminerSensorEntityDescription, ...] = (
     ),
     WhatsminerSensorEntityDescription(
         key="fan_in",
-        name="Fan In Speed",
-        native_unit_of_measurement=FREQUENCY_HERTZ,
+        name="Intake Fan Speed",
+        native_unit_of_measurement="RPM",
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.FREQUENCY,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -156,8 +156,8 @@ SENSOR_TYPES: Tuple[WhatsminerSensorEntityDescription, ...] = (
     ),
     WhatsminerSensorEntityDescription(
         key="fan_out",
-        name="Fan out Speed",
-        native_unit_of_measurement=FREQUENCY_HERTZ,
+        name="Outtake Fan Speed",
+        native_unit_of_measurement="RPM",
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.FREQUENCY,
         entity_category=EntityCategory.DIAGNOSTIC,
@@ -192,7 +192,6 @@ SENSOR_TYPES: Tuple[WhatsminerSensorEntityDescription, ...] = (
     WhatsminerSensorEntityDescription(
         key="power_mode",
         name="Power Mode",
-        state_class=SensorStateClass.MEASUREMENT,
         entity_category=EntityCategory.CONFIG,
         value=lambda x: x.summary.power_mode,
     ),
