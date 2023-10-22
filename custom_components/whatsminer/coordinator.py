@@ -15,13 +15,14 @@ from homeassistant.helpers.update_coordinator import (
 from .api import (
     WhatsminerMachine,
     WhatsminerApi,
+    WhatsminerApi20,
     Summary,
     PowerUnitDetails,
     Version,
     WhatsminerException,
     TokenError,
     DecodeError,
-    MinerOffline,
+    MinerOffline, UnsupportedVersion
 )
 from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_PASSWORD, CONF_MAC
 
@@ -55,27 +56,34 @@ class WhatsminerCoordinator(DataUpdateCoordinator[MinerData]):
         password = entry.data[CONF_PASSWORD]
         self.machine = WhatsminerMachine(host, port, password)
         self.api: WhatsminerApi = WhatsminerApi(self.machine)
+        self.version: Optional[Version] = None
         self.device_host: str = host
         self.device_model: Optional[str] = None
         self.device_mac: str = entry.data[CONF_MAC]
 
     async def async_fetch(self) -> MinerData:
         try:
-            await self.api.get_status()
+            if self.version is None:
+                self.api = await self.detect_api()
+
+            status = await self.api.get_status()
 
             if self.device_model is None:
                 async with async_timeout.timeout(10):
                     details = await self.api.get_device_details()
                     self.device_model = details[0].model
+
+            if not status.miner_online:
+                raise MinerOffline()
+
             async with async_timeout.timeout(10):
                 summary = await self.api.get_summary()
+
             async with async_timeout.timeout(10):
                 psu = await self.api.get_psu()
-            async with async_timeout.timeout(10):
-                version = await self.api.get_version()
 
             return OnlineMinerData(
-                self.device_model, summary=summary, power_unit=psu, version=version
+                self.device_model, summary=summary, power_unit=psu, version=self.version
             )
         except (TokenError, DecodeError) as error:
             raise ConfigEntryAuthFailed from error
@@ -86,3 +94,15 @@ class WhatsminerCoordinator(DataUpdateCoordinator[MinerData]):
         except Exception as error:
             _LOGGER.warning("Unexpected error: %s", error)
             raise UpdateFailed from error
+
+    async def detect_api(self):
+        api = WhatsminerApi(self.machine)
+        self.version = await api.get_version()
+
+        if self.version.api_version == "whatsminer v1.4.0":
+            return api
+
+        if self.version.api_version[:-1] == "2.0.":
+            return WhatsminerApi20(self.machine)
+
+        raise UnsupportedVersion(self.version.api_version)

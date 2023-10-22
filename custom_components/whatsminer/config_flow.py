@@ -16,6 +16,7 @@ from .api import (
     DecodeError,
     MinerOffline,
     WhatsminerApi,
+    WhatsminerApi20, UnsupportedVersion
 )
 from .const import DOMAIN, CONF_HOST, CONF_PORT, CONF_PASSWORD, CONF_MAC
 
@@ -26,7 +27,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(
-        self, user_input: Optional[Dict[str, Any]] = None
+            self, user_input: Optional[Dict[str, Any]] = None
     ) -> FlowResult:
         errors = {}
         if user_input is not None:
@@ -36,11 +37,11 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input[CONF_PASSWORD],
             )
             machine = WhatsminerMachine(host, port, password)
-            api = WhatsminerApi(machine)
             try:
                 await machine.check()
-                summary = await api.get_summary()
+                api = await self.async_detect_api(machine)
                 version = await api.get_version()
+                summary = await api.get_summary()
             except (asyncio.TimeoutError, aiohttp.ClientError):
                 _LOGGER.info("Cannot connect to miner")
                 errors["base"] = "cannot_connect"
@@ -52,6 +53,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "token_exceeded"
             except MinerOffline:
                 errors["base"] = "miner_offline"
+            except UnsupportedVersion:
+                errors["base"] = "unsupported_version"
             except WhatsminerException as e:
                 _LOGGER.info("Unexpected miner exception", exc_info=e)
                 errors["base"] = "unknown"
@@ -59,7 +62,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.warning("Unknown error", exc_info=e)
                 errors["base"] = "unknown"
             else:
-                if version.api_version != "whatsminer v1.4.0":
+                if version.api_version != "whatsminer v1.4.0" and version.api_version[:-1] != "2.0.":
                     errors["base"] = "unsupported_version"
                 else:
                     mac_address = format_mac(summary.mac)
@@ -78,3 +81,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user", data_schema=vol.Schema(data_schema), errors=errors
         )
+
+    async def async_detect_api(self, machine: WhatsminerMachine) -> WhatsminerApi:
+        api = WhatsminerApi(machine)
+        version = await api.get_version()
+
+        if version.api_version == "whatsminer v1.4.0":
+            return api
+
+        if version.api_version[:-1] == "2.0.":
+            return WhatsminerApi20(machine)
+
+        raise UnsupportedVersion(version.api_version)

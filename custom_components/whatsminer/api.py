@@ -40,6 +40,10 @@ class InvalidMessage(WhatsminerException):
     pass
 
 
+class UnsupportedVersion(WhatsminerException):
+    pass
+
+
 class ApiPermissionDenied(WhatsminerException):
     pass
 
@@ -96,7 +100,7 @@ class WhatsminerMachine(object):
         self._cipher = None
 
     async def _communicate_raw(
-        self, data: str, expect_response: bool = True
+            self, data: str, expect_response: bool = True
     ) -> Optional[str]:
         r, w = await asyncio.open_connection(host=self.host, port=self.port)
         logger.debug("Writing message %s", data)
@@ -110,11 +114,11 @@ class WhatsminerMachine(object):
             w.close()
 
     async def communicate(
-        self,
-        cmd: str,
-        additional: Optional[Dict[str, Any]] = None,
-        encrypted=False,
-        expect_response=True,
+            self,
+            cmd: str,
+            additional: Optional[Dict[str, Any]] = None,
+            encrypted=False,
+            expect_response=True,
     ) -> Optional[Dict]:
         if additional:
             data = dict(additional)
@@ -128,8 +132,8 @@ class WhatsminerMachine(object):
         if encrypted:
             enc_str = (
                 base64.encodebytes(self._cipher.encrypt(pad(plain_message)))
-                .decode("utf-8")
-                .replace("\n", "")
+                    .decode("utf-8")
+                    .replace("\n", "")
             )
             message = json.dumps({"enc": 1, "data": enc_str})
         else:
@@ -152,8 +156,8 @@ class WhatsminerMachine(object):
             try:
                 resp_plaintext: str = (
                     self._cipher.decrypt(b64decode(json_response["enc"]))
-                    .decode("utf-8")
-                    .rstrip("\0\n ")
+                        .decode("utf-8")
+                        .rstrip("\0\n ")
                 )
                 if not resp_plaintext:
                     raise InvalidResponse()
@@ -182,8 +186,8 @@ class WhatsminerMachine(object):
         now = datetime.datetime.now()
 
         if (
-            self._token_time is not None
-            and (now - self._token_time).total_seconds() < 29 * 60
+                self._token_time is not None
+                and (now - self._token_time).total_seconds() < 29 * 60
         ):
             return self._token
 
@@ -459,6 +463,61 @@ class WhatsminerApi(object):
             encrypted=True,
             expect_response=True,
         )
+
+
+class WhatsminerApi20(WhatsminerApi):
+    def __init__(self, machine: WhatsminerMachine):
+        super().__init__(machine)
+
+    async def get_summary(self) -> Summary:
+        response = await self.machine.communicate("summary", encrypted=False, expect_response=True)
+        response_info = await self.machine.communicate("get_miner_info", {"info": "mac"})
+        try:
+            data = response["SUMMARY"][0]
+            data_info = response_info["Msg"]
+            return Summary(
+                elapsed=data["Elapsed"],
+                average_hash_rate=round(data["MHS av"] / 1000),
+                hash_rate_5s=round(data["MHS 5s"] / 1000),
+                hash_rate_1m=round(data["MHS 1m"] / 1000),
+                hash_rate_5m=round(data["MHS 5m"] / 1000),
+                hash_rate_15m=round(data["MHS 15m"] / 1000),
+                accepted=data["Accepted"],
+                rejected=data["Rejected"],
+                temperature=data["Temperature"],
+                average_frequency=data["freq_avg"],
+                fan_speed_in=data["Fan Speed In"],
+                fan_speed_out=data["Fan Speed Out"],
+                power=data["Power"],
+                power_rate=data["Power Rate"],
+                pool_rejected_percent=data["Pool Rejected%"],
+                pool_stale_percent=data["Pool Stale%"],
+                uptime=data["Uptime"],
+                security_mode=data["Security Mode"] == 0,
+                target_frequency=data["Target Freq"],
+                target_hash_rate=data["Target MHS"] / 1000,
+                environment_temperature=data["Env Temp"],
+                power_mode=data["Power Mode"],
+                chip_temperature_minimum=data["Chip Temp Min"],
+                chip_temperature_maximum=data["Chip Temp Max"],
+                chip_temperature_average=data["Chip Temp Avg"],
+                mac=data_info["mac"],
+            )
+        except KeyError as error:
+            raise InvalidResponse() from error
+
+    async def get_status(self) -> MinerStatus:
+        response = await self.machine.communicate(
+            "status", encrypted=False, expect_response=True
+        )
+        try:
+            data = response["Msg"]
+            return MinerStatus(
+                miner_online=data["btmineroff"] == "false",
+                firmware_version=cast(str, data["FirmwareVersion"]).strip("'"),
+            )
+        except KeyError as error:
+            raise InvalidResponse() from error
 
 
 # ================================ misc helpers ================================
