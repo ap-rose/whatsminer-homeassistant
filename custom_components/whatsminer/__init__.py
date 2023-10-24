@@ -13,7 +13,8 @@ from .api import WhatsminerMachine
 from .const import DOMAIN, COORDINATOR, MINER
 from .coordinator import WhatsminerCoordinator
 
-PLATFORMS = [Platform.SENSOR, Platform.SWITCH]
+# Added Platform.BUTTON to the PLATFORMS list
+PLATFORMS = [Platform.SENSOR, Platform.SWITCH, Platform.BUTTON]
 
 _LOGGER = logging.getLogger(__name__)
 
