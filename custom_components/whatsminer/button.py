@@ -67,6 +67,3 @@ class WhatsminerButtonEntity(ButtonEntity, WhatsminerEntity):
         self.entity_description = description
         self.coordinator = coordinator
         self._attr_unique_id = f"{coordinator.device_mac}_{description.key}"
-
-    async def async_press(self) -> None:
-        await self.entity_description.press_fn(self.coordinator)
