@@ -17,18 +17,15 @@ from .entity import WhatsminerEntity
 
 _LOGGER = logging.getLogger(__name__)
 
-# Define types if we're type checking
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-# Dataclass for the mixin
 @dataclass
 class WhatsminerButtonEntityDescriptionMixin:
     press_fn: Callable[[HomeAssistant], Awaitable[Any]]
 
-# Combined dataclass for button entity description
 @dataclass
 class WhatsminerButtonEntityDescription(
     ButtonEntityDescription,
@@ -36,40 +33,40 @@ class WhatsminerButtonEntityDescription(
 ):
     pass
 
-# Define buttons and their properties
 BUTTONS: tuple[WhatsminerButtonEntityDescription, ...] = (
     WhatsminerButtonEntityDescription(
         key="restart_miner",
         name="Restart Miner",
         icon="mdi:restart",
         entity_category=EntityCategory.CONFIG,
-        press_fn=lambda hass: hass.data[DOMAIN][COORDINATOR].api.async_restart_miner(),
+        press_fn=lambda coordinator: coordinator.api.async_restart_miner(),
     ),
     WhatsminerButtonEntityDescription(
         key="reload_configuration",
         name="Reload Miner Configuration",
         icon="mdi:reload",
         entity_category=EntityCategory.CONFIG,
-        press_fn=lambda hass: hass.data[DOMAIN][COORDINATOR].api.async_reload_config(),
+        press_fn=lambda coordinator: coordinator.api.async_reload_config(),
     ),
 )
 
-# Function to setup button entities
 async def async_setup_entry(
-    _hass: HomeAssistant,
-    _entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
+    coordinator: WhatsminerCoordinator = hass.data[DOMAIN][entry.entry_id][COORDINATOR]
     _LOGGER.debug("Setting up Whatsminer button entities.")
     async_add_entities(
-        WhatsminerButtonEntity(description=description) for description in BUTTONS
+        WhatsminerButtonEntity(coordinator, description) for description in BUTTONS
     )
 
-# Define the custom button entity class
-class WhatsminerButtonEntity(ButtonEntity):
-    def __init__(self, description: WhatsminerButtonEntityDescription):
-        super().__init__()
+class WhatsminerButtonEntity(ButtonEntity, WhatsminerEntity):
+    def __init__(self, coordinator: WhatsminerCoordinator, description: WhatsminerButtonEntityDescription):
+        super().__init__(coordinator=coordinator)
         self.entity_description = description
+        self.coordinator = coordinator
+        self._attr_unique_id = f"{coordinator.device_mac}_{description.key}"
 
     async def async_press(self) -> None:
-        await self.entity_description.press_fn(self.hass)
+        await self.entity_description.press_fn(self.coordinator)
